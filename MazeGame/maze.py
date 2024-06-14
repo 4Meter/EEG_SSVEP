@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 import math
 import time
+from ssvep_tool import StreamSSVEP
 
 def load_maze(image_path):
     image = Image.open(image_path).convert('L')
@@ -52,12 +53,22 @@ def main():
     image_path = 'map3.png'
     binary_maze = load_maze(image_path)
 
+    stream = StreamSSVEP(
+        host_id='openbcigui',
+        used_eeg='obci_eeg1',
+        win_size=2
+    )
+    last_compute = time.time()
+    list_freqs = [7,8,9,10] # up, down, left, right
+    comand = ['Up', 'Down', 'Left', 'Right']
+    last_compute = time.time()
+
     # maze parameters
     TILE_SIZE = 1
     MOVE_STEP = 20
     WHITE = (255, 255, 255)
     BLACK = (0, 0, 0)
-    BORDER_RATIO = 0.6
+    BORDER_RATIO = 0.5
     maze_width = binary_maze.shape[1] * TILE_SIZE
     maze_height = binary_maze.shape[0] * TILE_SIZE
     screen_width = binary_maze.shape[1] * TILE_SIZE * (1 + BORDER_RATIO*2)
@@ -70,8 +81,7 @@ def main():
     # triangles
     triangle_base = 200
     triangle_height = 100
-    triangle_offset = 100
-    frequency = [7, 9, 11, 13] # up, down, left, right
+    triangle_offset = 75
     POINTS = [
         triangle_point((maze_offset[0] + maze_width//2, maze_offset[1] - triangle_offset), triangle_base, triangle_height, 'up'),
         triangle_point((maze_offset[0] + maze_width//2, maze_offset[1] + maze_height + triangle_offset), triangle_base, triangle_height, 'down'),
@@ -100,6 +110,32 @@ def main():
 
     running = True
     while running:
+
+        # get ssvep predict every 1 sec
+        cur_time = time.time()
+        if cur_time - last_compute > 1:
+            last_compute = cur_time
+            res = stream.get_classification(list_freqs=list_freqs, num_harms=3, num_fbs=5)
+            print(res, comand[res])
+
+            if not victory:
+                step = MOVE_STEP
+                while step > 0:
+                    move = {
+                        2: (-TILE_SIZE*step, 0),
+                        3: (TILE_SIZE*step, 0),
+                        0: (0, -TILE_SIZE*step),
+                        1: (0, TILE_SIZE*step),
+                    }.get(res, (0, 0))
+                    
+                    next_pos = [player_pos[0] + move[0], player_pos[1] + move[1]]
+                    
+                    if is_path_free(binary_maze, next_pos, player_radius, TILE_SIZE):
+                        player_pos = next_pos
+                        break
+                    else:
+                        step -= 2
+
         # keyboard control
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -134,7 +170,7 @@ def main():
         pygame.draw.circle(screen, player_color, (player_pos[0]+maze_offset[0], player_pos[1]+maze_offset[1]), player_radius)
         t = time.time() - start_time
         for i in range(4):
-            color_value = int((math.sin(2 * math.pi * frequency[i] * t) + 1) / 2 * 255)
+            color_value = int((math.sin(2 * math.pi * list_freqs[i] * t + math.pi * 0.5 * i) + 1) / 2 * 255)
             color = (color_value, color_value, color_value)  # Convert to grayscale
             pygame.draw.polygon(screen, color, POINTS[i])
 

@@ -177,9 +177,13 @@ def fbcca_realtime(data, list_freqs, fs, num_harms=3, num_fbs=5):
     rho = np.dot(fb_coefs, r)  #weighted sum of r from all different filter banks' result
     print(rho) #print out the correlation
     result = np.argmax(rho)  #get maximum from the target as the final predict (get the index), and index indicates the maximum entry(most possible target)
+    return result
+    #print(f'max:{list_freqs[result]}')
     ''' Threshold '''
-    THRESHOLD = 2.5
+    '''
+    THRESHOLD = 2.587
     if abs(rho[result])<THRESHOLD:  #2.587=np.sum(fb_coefs*0.8) #2.91=np.sum(fb_coefs*0.9) #1.941=np.sum(fb_coefs*0.6)
-        return 4 #if the correlation isn't big enough, do not return any command
+        return None # if the correlation isn't big enough, do not return any command
     else:
         return result
+    '''
