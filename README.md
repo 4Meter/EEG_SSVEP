@@ -1,4 +1,4 @@
-# SSVEP-based SSVEP-based BCI system: Performance Evaluation and Realization
+# SSVEP-based BCI system: Performance Evaluation and Realization
 This project is the final project of the course 'Brain Computer Interfaces: Fundamentals and Applications.'  
 If you have any related questions, feel free to contact the author of this repository.
 ## Introduction
